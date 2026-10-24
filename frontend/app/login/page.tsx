@@ -1,9 +1,13 @@
-
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiFetch, saveSession, type SessionUser } from "@/lib/api";
+
+type LoginResponse = { token: string; user: SessionUser };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -15,34 +19,20 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const data = await apiFetch<LoginResponse>("/auth/login", {
+        method: "POST",
+        body: { email, password },
+      });
 
-      const data = await response.json();
+      saveSession(data.token, data.user);
 
-      if (!response.ok) {
-        setMessage(data.message || "Login failed");
-        return;
+      if (data.user.mustChangePassword) {
+        router.replace("/change-password");
+      } else {
+        router.replace("/dashboard");
       }
-
-      if (!data.token) {
-        setMessage("Login successful, but token was not received.");
-        return;
-      }
-
-      localStorage.setItem("token", data.token);
-      setMessage("Login successful!");
     } catch (error) {
-      console.error("Login error:", error);
-      setMessage("Login failed. Check the backend server and API URL.");
+      setMessage(error instanceof Error ? error.message : "Login failed.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +41,7 @@ export default function LoginPage() {
   return (
     <main className="login-page">
       <form className="login-card" onSubmit={handleLogin}>
-        <h1>Welcome Back</h1>
+        <h1>HCM Lite</h1>
         <p>Login to your account</p>
 
         <label htmlFor="email">Email</label>
@@ -61,7 +51,7 @@ export default function LoginPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email"
-          autoComplete="off"
+          autoComplete="username"
           required
         />
 
@@ -72,7 +62,7 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter your password"
-          autoComplete="new-password"
+          autoComplete="current-password"
           required
         />
 
@@ -80,7 +70,11 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {message && <p className="login-message">{message}</p>}
+        {message && (
+          <p className="login-message" role="alert">
+            {message}
+          </p>
+        )}
       </form>
     </main>
   );
