@@ -1,18 +1,12 @@
-const express = require("express")
-const { signup, login } = require("../controllers/auth.controller")
-const authMiddleware = require("../middlewares/auth..iddleware")
+const express = require("express");
+const { login, me, changePassword } = require("../controllers/auth.controller");
+const { authMiddlewareAllowPending } = require("../middlewares/auth.middleware");
 
-const router = express.Router()
+const router = express.Router();
 
-router.post("/signup",signup)
-router.post("/login",login)
-router.get("/profile", authMiddleware, (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Protected profile accessed successfully",
-    user: req.user,
-  });
-});
+router.post("/login", login);
+router.get("/me", authMiddlewareAllowPending, me);
+router.get("/profile", authMiddlewareAllowPending, me); // kept for the existing profile page
+router.post("/change-password", authMiddlewareAllowPending, changePassword);
 
-
-module.exports = router
+module.exports = router;

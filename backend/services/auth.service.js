@@ -1,99 +1,82 @@
-const User = require("../models/user")
-const SECRET =process.env.SECRET
-const bcrypt = require("bcrypt")
-const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
+const AppError = require("../utils/appError");
+const { requirePassword } = require("../utils/validators");
+const { logAudit } = require("../utils/audit");
 
+const hashPassword = (password) => bcrypt.hash(password, 10);
 
-async function signupService({name,email,password}){
-    try{
-        
+async function loginService({ email, password }) {
+  if (
+    typeof email !== "string" ||
+    typeof password !== "string" ||
+    !email.trim() ||
+    !password
+  ) {
+    throw new AppError(400, "Email and password are required");
+  }
 
-    if(!name || !email || !password){
-       
-          throw new Error ("invalid credencial")
-      
-    }
+  const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+password");
 
-    const normalizedEmail = email.trim().toLowerCase()
+  const passwordOk = user ? await bcrypt.compare(password, user.password) : false;
 
-    const existingUser = await User.findOne({email:normalizedEmail})
+  if (!user || !passwordOk || !user.isActive) {
+    throw new AppError(401, "Invalid email or password");
+  }
 
-    if(existingUser){
+  if (!process.env.SECRET) {
+    throw new Error("SECRET is not configured");
+  }
 
-       throw new Error ("user already availabe")
-    }
-    
-const hashedPassword = await bcrypt.hash(password,10)
+  const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.SECRET, {
+    expiresIn: "1d",
+  });
 
-
-    const user = await User.create({
-        name:name.trim(),
-        email:normalizedEmail,
-        password:hashedPassword})
-
-        return {
-                id: user._id,
-                name: user.name,
-                email:user.email
-                
-            }
-        
-
-        }
-    catch(error){
-        console.error("signup error", error.message)
-        throw error;
-
-       
-        
-    }
-   
-   
-}
-async function loginService({email,password}){
-    try{
-        
-
-    if( !email || !password){
-       
-          throw new Error ("invalid credencial")
-      
-    }
-
-    const normalizedEmail = email.trim().toLowerCase()
-
-    const user = await User.findOne({email:normalizedEmail})
-
-    if(!user){
-
-       throw new Error ("invalid credencial")
-    }
-    const isPasswordCorrect = await bcrypt.compare(password, user.password)
-    
-    if(!isPasswordCorrect){
-        throw new Error("invalid credencial")
-    }
-    
-    const token = await jwt.sign({id:user._id, email:user.email, name: user.name,}, process.env.SECRET,{expiresIn:"1d"})
-    return {
-        id: user._id,
-        name:user.name,
-        email:user.email,
-        token:token
-        
-            }
-        
-
-        }
-    catch(error){
-        console.error("login error", error.message)
-        throw error;
-
-       
-        
-    }
-   
-   
+  return {
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    },
+  };
 }
 
-module.exports = {signupService,loginService}
+async function changePasswordService(userId, { currentPassword, newPassword }) {
+  if (typeof currentPassword !== "string" || !currentPassword) {
+    throw new AppError(400, "Current password is required");
+  }
+  requirePassword(newPassword, "New password");
+
+  const user = await User.findById(userId).select("+password");
+  if (!user) {
+    throw new AppError(404, "User not found");
+  }
+
+  const currentOk = await bcrypt.compare(currentPassword, user.password);
+  if (!currentOk) {
+    throw new AppError(401, "Current password is incorrect");
+  }
+
+  if (currentPassword === newPassword) {
+    throw new AppError(422, "New password must be different from the current one");
+  }
+
+  user.password = await hashPassword(newPassword);
+  user.mustChangePassword = false;
+  await user.save();
+
+  await logAudit({
+    actor: { id: user._id, email: user.email },
+    action: "user.change_password",
+    entity: "user",
+    entityId: user._id,
+    before: { mustChangePassword: true },
+    after: { mustChangePassword: false },
+  });
+}
+
+module.exports = { loginService, changePasswordService, hashPassword };
