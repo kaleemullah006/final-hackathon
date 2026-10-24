@@ -5,10 +5,11 @@ const { requireString, requireEmail, requirePassword } = require("../utils/valid
 const { hashPassword } = require("./auth.service");
 const { logAudit } = require("../utils/audit");
 
-async function getSetupStatus() {
-  const userCount = await User.countDocuments({});
-  return { needsSetup: userCount === 0 };
-}
+   async function getSetupStatus() {
+     // Setup is needed until an Admin exists (even a deactivated Admin counts)
+     const adminCount = await User.countDocuments({ role: "admin" });
+     return { needsSetup: adminCount === 0 };
+   }
 
 async function completeSetupService({ companyName, adminName, adminEmail, adminPassword }) {
   const name = requireString(companyName, "Company name");
