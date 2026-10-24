@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 
 const express = require("express");
@@ -24,6 +23,7 @@ app.use(async (req, res, next) => {
   } catch (error) {
     dbPromise = null;
     console.error("Database connection failed:", error.message);
+
     res.status(500).json({
       success: false,
       message: "Database connection failed",
