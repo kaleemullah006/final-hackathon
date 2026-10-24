@@ -6,6 +6,8 @@ const connectDB = require("./config/db");
 const authRouter = require("./routers/auth.router");
 const setupRouter = require("./routers/setup.router");
    const settingsRouter = require("./routers/settings.router");
+      const departmentRouter = require("./routers/department.router");
+   const designationRouter = require("./routers/designation.router");
 
 const app = express();
 app.disable("x-powered-by");
@@ -54,6 +56,8 @@ app.use(async (req, res, next) => {
 app.use("/setup", setupRouter);
 app.use("/auth", authRouter);
    app.use("/settings", settingsRouter);
+      app.use("/departments", departmentRouter);
+   app.use("/designations", designationRouter);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
