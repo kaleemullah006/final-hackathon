@@ -143,4 +143,5 @@ module.exports = {
   deleteHoliday,
   validateHolidayInput,
   parseYear,
+    requireIsoDate,
 };
