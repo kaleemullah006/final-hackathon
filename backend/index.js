@@ -10,6 +10,8 @@ const setupRouter = require("./routers/setup.router");
    const designationRouter = require("./routers/designation.router");
       const leaveTypeRouter = require("./routers/leaveType.router");
    const holidayRouter = require("./routers/holiday.router");
+   const employeeRouter = require("./routers/employee.router");
+const userRouter = require("./routers/user.router");
 
 const app = express();
 app.disable("x-powered-by");
@@ -62,6 +64,8 @@ app.use("/auth", authRouter);
    app.use("/designations", designationRouter);
       app.use("/leave-types", leaveTypeRouter);
    app.use("/holidays", holidayRouter);
+   app.use("/employees", employeeRouter);
+app.use("/users", userRouter);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
