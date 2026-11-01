@@ -5,13 +5,17 @@ const cors = require("cors");
 const connectDB = require("./config/db");
 const authRouter = require("./routers/auth.router");
 const setupRouter = require("./routers/setup.router");
-   const settingsRouter = require("./routers/settings.router");
-      const departmentRouter = require("./routers/department.router");
-   const designationRouter = require("./routers/designation.router");
-      const leaveTypeRouter = require("./routers/leaveType.router");
-   const holidayRouter = require("./routers/holiday.router");
-   const employeeRouter = require("./routers/employee.router");
+const settingsRouter = require("./routers/settings.router");
+const departmentRouter = require("./routers/department.router");
+const designationRouter = require("./routers/designation.router");
+const leaveTypeRouter = require("./routers/leaveType.router");
+const holidayRouter = require("./routers/holiday.router");
+const employeeRouter = require("./routers/employee.router");
 const userRouter = require("./routers/user.router");
+const attendanceRouter = require("./routers/attendance.router");
+const leaveRouter = require("./routers/leave.router");
+
+const payrollRouter = require("./routers/payroll.router");
 
 const app = express();
 app.disable("x-powered-by");
@@ -59,13 +63,18 @@ app.use(async (req, res, next) => {
 
 app.use("/setup", setupRouter);
 app.use("/auth", authRouter);
-   app.use("/settings", settingsRouter);
-      app.use("/departments", departmentRouter);
-   app.use("/designations", designationRouter);
-      app.use("/leave-types", leaveTypeRouter);
-   app.use("/holidays", holidayRouter);
-   app.use("/employees", employeeRouter);
+app.use("/settings", settingsRouter);
+app.use("/departments", departmentRouter);
+app.use("/designations", designationRouter);
+app.use("/leave-types", leaveTypeRouter);
+app.use("/holidays", holidayRouter);
+app.use("/employees", employeeRouter);
 app.use("/users", userRouter);
+app.use("/attendance", attendanceRouter);
+app.use("/leave", leaveRouter);
+app.use("/payroll", payrollRouter);
+
+
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
